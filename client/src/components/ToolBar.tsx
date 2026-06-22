@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from 'react';
 import { Search } from 'lucide-react';
 import { useUIStore } from '../store/useUiStore';
 import type { FilterOption } from '../types/task';
@@ -17,8 +18,11 @@ const STATUS_KEYWORDS: Record<string, FilterOption> = {
 
 export default function ToolBar() {
     const { search, filter, setSearch, setFilter } = useUIStore();
+    
+    const [localValue, setLocalValue] = useState(search);
 
-    const handleSearch = (value: string) => {
+    // Search function
+    const executeSearch = useCallback((value: string) => {
         setSearch(value);
 
         const keyword = value.trim().toLowerCase();
@@ -29,7 +33,16 @@ export default function ToolBar() {
         } else if (Object.keys(STATUS_KEYWORDS).some((k) => k.startsWith(keyword)) === false) {
             setFilter('all');
         }
-    };
+    }, [setSearch, setFilter]);
+
+    // Debounce effect - Wait 300ms after the last keystroke before triggering the search function
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            executeSearch(localValue);
+        }, 300); 
+
+        return () => clearTimeout(timer);
+    }, [localValue, executeSearch]);
 
     return (
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -41,9 +54,9 @@ export default function ToolBar() {
                 <input
                     type="text"
                     placeholder="Search tasks..."
-                    value={search}
+                    value={localValue} 
                     maxLength={255}
-                    onChange={(e) => handleSearch(e.target.value)}
+                    onChange={(e) => setLocalValue(e.target.value)}
                     className="w-full pl-8 pr-4 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-800 placeholder-gray-400
                         focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
                 />
